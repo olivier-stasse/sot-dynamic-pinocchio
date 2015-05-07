@@ -47,12 +47,18 @@ using namespace std;
 namespace dynamicgraph { namespace sot {
 namespace dg = dynamicgraph;
 
+    namespace commande {
+        class CreateOpPoint;
+    }
+
 /* --------------------------------------------------------------------- */
 /* --- CLASS ----------------------------------------------------------- */
 /* --------------------------------------------------------------------- */
 
 class SOTDYNAMIC_EXPORT Dynamic:public dg::Entity
 {
+    friend class sot::commande::CreateOpPoint;
+
     DYNAMIC_GRAPH_ENTITY_DECL();
     std::list< dg::SignalBase<int>*  > genericSignalRefs;
 public: /* --- CONSTRUCTION --- */
@@ -77,14 +83,14 @@ public:/*  --- ATRIBUTES --- */
 
 public: /* --- SIGNAL ACTIVATION --- */
  //CAUTION: j as int type, temporary
-    dg::SignalTimeDependent< ml::Matrix,int > & createEndeffJacobianSignal( const std::string& signame, int inJoint );
-    dg::SignalTimeDependent< ml::Matrix,int > & createJacobianSigna       ( const std::string& signame, int inJoint );
+    dg::SignalTimeDependent< ml::Matrix,int > & createEndeffJacobianSignal( const std::string& signame, int jointId );
+    dg::SignalTimeDependent< ml::Matrix,int > & createJacobianSigna       ( const std::string& signame, int jointId );
     void destroyJacobianSignal                                            ( const std::string& signame );
-    dg::SignalTimeDependent< MatrixHomogeneous,int >&createPositionSignal ( const std::string& signame, int inJoint );
+    dg::SignalTimeDependent< MatrixHomogeneous,int >&createPositionSignal ( const std::string& signame, int jointId );
     void destroyPositionSignal                                            ( const std::string& signame );
-    dg::SignalTimeDependent< ml::Vector,int >&     createVelocitySignal   ( const std::string& signame,  int inJoint );
+    dg::SignalTimeDependent< ml::Vector,int >&     createVelocitySignal   ( const std::string& signame,  int jointId );
     void destroyVelocitySignal                                            ( const std::string& signame );
-    dg::SignalTimeDependent< ml::Vector,int >&   createAccelerationSignal ( const std::string& signame, int inJoint );
+    dg::SignalTimeDependent< ml::Vector,int >&   createAccelerationSignal ( const std::string& signame, int jointId );
     void destroyAccelerationSignal                                        ( const std::string& signame );
 
 
@@ -161,6 +167,9 @@ public:
  ml::Vector& getLowerTorqueLimits( ml::Vector& res,const int& time );
 
  ml::Vector& computeTorqueDrift( ml::Vector& res,const int& time );
+
+public: /* --- PARAMS --- */
+ void cmd_createOpPointSignals(const std::string& sig,const std::string& j);
 
 };
 } /* namespace sot */} /* namespace dynamicgraph */

@@ -144,8 +144,32 @@ Dynamic::Dynamic( const std::string & name, bool build ):Entity(name)
     signalRegistration( MomentaSOUT);
     signalRegistration(AngularMomentumSOUT);
     signalRegistration(dynamicDriftSOUT);
-}
 
+    //
+    // Commande
+    //
+    // #### Work in progress
+    using namespace ::dynamicgraph::command;
+    std::string docstring;
+
+    // CreateOpPoint
+    docstring =
+            "    \n"
+            "    Create an operational point attached to a robot joint local frame.\n"
+            "    \n"
+            "      Input: \n"
+            "        - a string: name of the operational point,\n"
+            "        - a string: name the joint, among (gaze, left-ankle, right ankle\n"
+            "          , left-wrist, right-wrist, waist, chest).\n"
+            "\n";
+    addCommand("CreateOpPoint",
+               makeCommandVoid2(*this,&Dynamic::cmd_createOpPointSignals,
+                                docstring));
+
+
+
+    // #### End Work in progress
+}
 
 Dynamic::~Dynamic( void )
 {
@@ -167,6 +191,10 @@ void Dynamic::setUrdfPath( const std::string& path )
     if (this->m_data) delete this->m_data;
     this->m_data = new se3::Data(m_model);
 }
+
+/* --- CONVERTION ---------------------------------------------------- */
+/* --- CONVERTION ---------------------------------------------------- */
+/* --- CONVERTION ---------------------------------------------------- */
 
 Eigen::VectorXd Dynamic::getPinocchioPos(int time)
 {
@@ -205,6 +233,76 @@ Eigen::VectorXd Dynamic::getPinocchioAcc(int time)
     a << aFF,aJoints;// assert q.size()==m_model.nq?
     return a;
 }
+
+/* --- SIGNAL ACTIVATION ---------------------------------------------------- */
+/* --- SIGNAL ACTIVATION ---------------------------------------------------- */
+/* --- SIGNAL ACTIVATION ---------------------------------------------------- */
+dg::SignalTimeDependent< ml::Matrix,int > & Dynamic::
+createEndeffJacobianSignal( const std::string& signame, int jointId )
+{
+    //TODO: implement here
+    dg::SignalTimeDependent<ml::Matrix,int> res;
+    return res;
+}
+
+dg::SignalTimeDependent< ml::Matrix,int > & Dynamic::
+createJacobianSigna( const std::string& signame, int jointId )
+{
+    //TODO: implement here
+    dg::SignalTimeDependent<ml::Matrix,int> res;
+    return res;
+}
+
+void Dynamic::
+destroyJacobianSignal( const std::string& signame )
+{
+    //TODO: implement here
+}
+
+dg::SignalTimeDependent< MatrixHomogeneous,int >& Dynamic::
+createPositionSignal ( const std::string& signame, int jointId )
+{
+    //TODO: implement here
+    dg::SignalTimeDependent<MatrixHomogeneous,int> res;
+    return res;
+}
+
+void Dynamic::
+destroyPositionSignal( const std::string& signame )
+{
+    //TODO: implement here
+}
+
+dg::SignalTimeDependent< ml::Vector,int >& Dynamic::
+createVelocitySignal( const std::string& signame,  int jointId )
+{
+    //TODO: implement here
+    dg::SignalTimeDependent<ml::Vector,int> res;
+    return res;
+}
+
+void Dynamic::
+destroyVelocitySignal( const std::string& signame )
+{
+    //TODO: implement here
+}
+
+dg::SignalTimeDependent< ml::Vector,int >& Dynamic::
+createAccelerationSignal( const std::string& signame, int jointId )
+{
+    //TODO: implement here
+    dg::SignalTimeDependent<ml::Vector,int> res;
+    return res;
+}
+
+void Dynamic::
+destroyAccelerationSignal( const std::string& signame )
+{
+    //TODO: implement here
+}
+
+
+
 /* --- COMPUTE -------------------------------------------------------------- */
 /* --- COMPUTE -------------------------------------------------------------- */
 /* --- COMPUTE -------------------------------------------------------------- */
@@ -268,7 +366,12 @@ ml::Vector& Dynamic::computeAngularMomentum( ml::Vector &res, int time)
 
 ml::Matrix& Dynamic::computeJcom( ml::Matrix& res,int time )
 {
-    //TODO: implement here
+    //Work done
+    sotDEBUGIN(25);
+    newtonEulerSINTERN(time);
+
+    res.initFromMotherLib(eigenMatrixXdToMaal(m_data->Jcom).accessToMotherLib());
+    sotDEBUGOUT(25);
     return res;
 }
 
@@ -378,4 +481,20 @@ ml::Vector& Dynamic::computeTorqueDrift( ml::Vector& res,const int& time )
 {
     //TODO: implement here
     return res;
+}
+
+/* --- COMMANDS ------------------------------------------------------------- */
+/* --- COMMANDS ------------------------------------------------------------- */
+/* --- COMMANDS ------------------------------------------------------------- */
+
+void Dynamic::cmd_createOpPointSignals( const std::string& opPointName,
+                                        const std::string& jointName )
+{
+    if(!this->m_model.existBodyName(jointName))
+    {
+        throw runtime_error ("Robot has no joint corresponding to " + jointName);
+    }
+    int jointId = this->m_model.getBodyId(jointName);
+    createEndeffJacobianSignal(std::string("J")+opPointName,jointId);
+    createPositionSignal(opPointName,jointId);
 }
