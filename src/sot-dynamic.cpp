@@ -9,6 +9,8 @@
 
 #include <dynamic-graph/all-commands.h>
 
+#include <pinocchio/algorithm/kinematics.hpp>
+
 using namespace dynamicgraph::sot;
 using namespace dynamicgraph;
 
@@ -334,13 +336,22 @@ ml::Matrix& Dynamic::computeGenericJacobian( int jointId,ml::Matrix& res,int tim
 
 ml::Matrix& Dynamic::computeGenericEndeffJacobian( int aJoint,ml::Matrix& res,int time )
 {
-    //TODO: implement here
+    //TODO: implement herecurrentcon
     return res;
 }
 
-MatrixHomogeneous& Dynamic::computeGenericPosition( int aJoint,MatrixHomogeneous& res,int time )
+MatrixHomogeneous& Dynamic::computeGenericPosition( int jointId,MatrixHomogeneous& res,int time )
 {
-    //TODO: implement here
+    //Work in progress
+    // issue : homogeneous matrix change with constant values in multi-executions
+    sotDEBUGIN(25);
+    newtonEulerSINTERN(time);
+
+    se3::SE3 se3tmp = this->m_data->oMi[jointId];
+    //cout << "omi" << this->m_data->oMi[jointId] << endl;
+    res.initFromMotherLib(eigenMatrixXdToMaal(se3tmp.toHomogeneousMatrix()).accessToMotherLib());
+
+    sotTDEBUGOUT(25);
     return res;
 }
 
@@ -453,6 +464,8 @@ int& Dynamic::computeNewtonEuler( int& dummy,int time )
     const Eigen::VectorXd v=getPinocchioVel(time);
     const Eigen::VectorXd a=getPinocchioAcc(time);
     se3::rnea(m_model,*m_data,q,v,a);
+    se3::kinematics(m_model,*m_data,q,v);
+
     return dummy;
 }
 
