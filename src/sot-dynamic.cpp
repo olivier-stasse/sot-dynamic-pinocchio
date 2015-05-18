@@ -10,6 +10,8 @@
 #include <dynamic-graph/all-commands.h>
 
 #include <pinocchio/algorithm/kinematics.hpp>
+#include <pinocchio/spatial/motion.hpp>
+#include <pinocchio/algorithm/crba.hpp>
 
 using namespace dynamicgraph::sot;
 using namespace dynamicgraph;
@@ -326,29 +328,33 @@ ml::Matrix& Dynamic::computeGenericJacobian( int jointId,ml::Matrix& res,int tim
     sotDEBUGIN(25);
     newtonEulerSINTERN(time);
 
-    se3::jacobian(this->m_model,*this->m_data,this->getPinocchioPos(time),jointId);
-    res.initFromMotherLib(eigenMatrixXdToMaal(m_data->J).accessToMotherLib());
+    res = eigenMatrixXdToMaal(se3::computeJacobians(this->m_model,*this->m_data,this->getPinocchioPos(time)));
 
     sotDEBUGOUT(25);
 
     return res;
 }
 
-ml::Matrix& Dynamic::computeGenericEndeffJacobian( int aJoint,ml::Matrix& res,int time )
+ml::Matrix& Dynamic::computeGenericEndeffJacobian( int jointId,ml::Matrix& res,int time )
 {
-    //TODO: implement herecurrentcon
+    //Work in progress
+    sotDEBUGIN(25);
+    newtonEulerSINTERN(time);
+
+    res = eigenMatrixXdToMaal(se3::jacobian(this->m_model,*this->m_data,this->getPinocchioPos(time),jointId));
+    //TODO : verify with the size of cjrl matrix returned
+
+    sotTDEBUGOUT(25);
     return res;
 }
 
 MatrixHomogeneous& Dynamic::computeGenericPosition( int jointId,MatrixHomogeneous& res,int time )
 {
-    //Work in progress
-    // issue : homogeneous matrix change with constant values in multi-executions
+    //Work done
     sotDEBUGIN(25);
     newtonEulerSINTERN(time);
 
     se3::SE3 se3tmp = this->m_data->oMi[jointId];
-    //cout << "omi" << this->m_data->oMi[jointId] << endl;
     res.initFromMotherLib(eigenMatrixXdToMaal(se3tmp.toHomogeneousMatrix()).accessToMotherLib());
 
     sotTDEBUGOUT(25);
@@ -357,19 +363,58 @@ MatrixHomogeneous& Dynamic::computeGenericPosition( int jointId,MatrixHomogeneou
 
 ml::Vector& Dynamic::computeGenericVelocity( int j,ml::Vector& res,int time )
 {
-    //TODO: implement here
+    //work done
+    sotDEBUGIN(25);
+    newtonEulerSINTERN(time);
+
+    se3::Motion aRV = this->m_data->v[j];
+    se3::MotionTpl<double>::Vector3 al= aRV.linear();
+    se3::MotionTpl<double>::Vector3 ar= aRV.angular();
+
+    res.resize(6);
+    for( int i=0;i<3;++i )
+      {
+        res(i)=al(i);
+        res(i+3)=ar(i);
+      }
+    sotDEBUGOUT(25);
     return res;
 }
 
 ml::Vector& Dynamic::computeGenericAcceleration( int j,ml::Vector& res,int time )
 {
-    //TODO: implement here
+    //work done
+    sotDEBUGIN(25);
+    newtonEulerSINTERN(time);
+    se3::Motion aRA = this->m_data->a[j];
+    se3::MotionTpl<double>::Vector3 al= aRA.linear();
+    se3::MotionTpl<double>::Vector3 ar= aRA.angular();
+
+    res.resize(6);
+    for( int i=0;i<3;++i )
+      {
+        res(i)=al(i);
+        res(i+3)=ar(i);
+      }
+
+    sotDEBUGOUT(25);
     return res;
 }
 
 ml::Vector& Dynamic::computeZmp( ml::Vector& res,int time )
 {
-    //TODO: implement here
+    //work in progress
+    sotDEBUGIN(25);
+    //res is latest ZMPval
+    if (res.size()!=3)
+      res.resize(3);
+
+    newtonEulerSINTERN(time);
+    std::vector<se3::Force> ftau = this->m_data->f;
+
+
+    sotDEBUGOUT(25);
+
     return res;
 }
 
@@ -409,7 +454,11 @@ ml::Vector& Dynamic::computeCom( ml::Vector& res,int time )
 
 ml::Matrix& Dynamic::computeInertia( ml::Matrix& res,int time )
 {
-    //TODO: implement here
+    //work done
+    sotDEBUGIN(25);
+    newtonEulerSINTERN(time);
+    res=eigenMatrixXdToMaal(se3::crba(this->m_model,*this->m_data,this->getPinocchioPos(time)));
+    sotDEBUGOUT(25);
     return res;
 }
 
@@ -464,7 +513,7 @@ int& Dynamic::computeNewtonEuler( int& dummy,int time )
     const Eigen::VectorXd v=getPinocchioVel(time);
     const Eigen::VectorXd a=getPinocchioAcc(time);
     se3::rnea(m_model,*m_data,q,v,a);
-    se3::kinematics(m_model,*m_data,q,v);
+    //se3::kinematics(m_model,*m_data,q,v);
 
     return dummy;
 }

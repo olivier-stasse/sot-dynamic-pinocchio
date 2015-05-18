@@ -138,6 +138,8 @@ public:
  dg::SignalTimeDependent<ml::Vector,int> AngularMomentumSOUT;
  dg::SignalTimeDependent<ml::Vector,int> dynamicDriftSOUT;
 
+ ml::Matrix& computeInertia( ml::Matrix& res,int time );
+
 protected: /* --- METHODS --- */
 
  ml::Vector& computeZmp( ml::Vector& res,int time );
@@ -145,14 +147,13 @@ protected: /* --- METHODS --- */
  ml::Vector& computeAngularMomentum( ml::Vector &res, int time);
  ml::Matrix& computeJcom( ml::Matrix& res,int time );
  ml::Vector& computeCom( ml::Vector& res,int time );
- ml::Matrix& computeInertia( ml::Matrix& res,int time );
  ml::Matrix& computeInertiaReal( ml::Matrix& res,int time );
  double& computeFootHeight( double& res,int time );
 
  //CAUTION: j as int type, temporary
 public:
  ml::Matrix& computeGenericJacobian( int jointId,ml::Matrix& res,int time );
- ml::Matrix& computeGenericEndeffJacobian( int j,ml::Matrix& res,int time );
+ ml::Matrix& computeGenericEndeffJacobian( int jointId,ml::Matrix& res,int time );
  MatrixHomogeneous& computeGenericPosition( int jointId,MatrixHomogeneous& res,int time );
  ml::Vector& computeGenericVelocity( int j,ml::Vector& res,int time );
  ml::Vector& computeGenericAcceleration( int j,ml::Vector& res,int time );
