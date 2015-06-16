@@ -84,7 +84,7 @@ public:/*  --- ATRIBUTES --- */
 public: /* --- SIGNAL ACTIVATION --- */
  //CAUTION: j as int type, temporary
     dg::SignalTimeDependent< ml::Matrix,int > & createEndeffJacobianSignal( const std::string& signame, int jointId );
-    dg::SignalTimeDependent< ml::Matrix,int > & createJacobianSigna       ( const std::string& signame, int jointId );
+    dg::SignalTimeDependent< ml::Matrix,int > & createJacobianSignal      ( const std::string& signame, int jointId );
     void destroyJacobianSignal                                            ( const std::string& signame );
     dg::SignalTimeDependent< MatrixHomogeneous,int >&createPositionSignal ( const std::string& signame, int jointId );
     void destroyPositionSignal                                            ( const std::string& signame );
@@ -138,11 +138,13 @@ public:
  dg::SignalTimeDependent<ml::Vector,int> AngularMomentumSOUT;
  dg::SignalTimeDependent<ml::Vector,int> dynamicDriftSOUT;
 
+ // public for tests //
  ml::Matrix& computeInertia( ml::Matrix& res,int time );
+ ml::Vector& computeZmp( ml::Vector& res,int time );
 
 protected: /* --- METHODS --- */
 
- ml::Vector& computeZmp( ml::Vector& res,int time );
+
  ml::Vector& computeMomenta( ml::Vector &res, int time);
  ml::Vector& computeAngularMomentum( ml::Vector &res, int time);
  ml::Matrix& computeJcom( ml::Matrix& res,int time );
@@ -171,6 +173,7 @@ public:
 
 public: /* --- PARAMS --- */
  void cmd_createOpPointSignals(const std::string& sig,const std::string& j);
+ void cmd_createJacobianWorldSignal( const std::string& sig,const std::string& j );
 
 };
 } /* namespace sot */} /* namespace dynamicgraph */
