@@ -127,9 +127,7 @@ public:
  dg::SignalTimeDependent<ml::Vector,int> upperJlSOUT;
  dg::SignalTimeDependent<ml::Vector,int> lowerJlSOUT;
  dg::SignalTimeDependent<ml::Vector,int> upperVlSOUT;
- dg::SignalTimeDependent<ml::Vector,int> lowerVlSOUT;
  dg::SignalTimeDependent<ml::Vector,int> upperTlSOUT;
- dg::SignalTimeDependent<ml::Vector,int> lowerTlSOUT;
 
  dg::Signal<ml::Vector,int> inertiaRotorSOUT;
  dg::Signal<ml::Vector,int> gearRatioSOUT;
@@ -147,8 +145,6 @@ protected: /* --- METHODS --- */
 
  ml::Vector& computeMomenta( ml::Vector &res, int time);
  ml::Vector& computeAngularMomentum( ml::Vector &res, int time);
- ml::Matrix& computeJcom( ml::Matrix& res,int time );
- ml::Vector& computeCom( ml::Vector& res,int time );
  ml::Matrix& computeInertiaReal( ml::Matrix& res,int time );
  double& computeFootHeight( double& res,int time );
 
@@ -160,20 +156,21 @@ public:
  ml::Vector& computeGenericVelocity( int j,ml::Vector& res,int time );
  ml::Vector& computeGenericAcceleration( int j,ml::Vector& res,int time );
 
+ ml::Vector& computeCom( ml::Vector& res,int time );
+ ml::Matrix& computeJcom( ml::Matrix& res,int time );
+
  ml::Vector& getUpperJointLimits( ml::Vector& res,const int& time );
  ml::Vector& getLowerJointLimits( ml::Vector& res,const int& time );
-
  ml::Vector& getUpperVelocityLimits( ml::Vector& res,const int& time );
- ml::Vector& getLowerVelocityLimits( ml::Vector& res,const int& time );
-
  ml::Vector& getUpperTorqueLimits( ml::Vector& res,const int& time );
- ml::Vector& getLowerTorqueLimits( ml::Vector& res,const int& time );
 
  ml::Vector& computeTorqueDrift( ml::Vector& res,const int& time );
 
 public: /* --- PARAMS --- */
  void cmd_createOpPointSignals(const std::string& sig,const std::string& j);
  void cmd_createJacobianWorldSignal( const std::string& sig,const std::string& j );
+ void cmd_createJacobianEndEffectorSignal( const std::string& sig,const std::string& j );
+ void cmd_createPositionSignal( const std::string& sig,const std::string& j );
 
 };
 } /* namespace sot */} /* namespace dynamicgraph */

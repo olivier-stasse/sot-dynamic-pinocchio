@@ -61,17 +61,9 @@ Dynamic::Dynamic( const std::string & name, bool build ):Entity(name)
                 sotNOSIGNAL,
                 "sotDynamic("+name+")::output(vector)::upperVl" )
 
-  ,lowerVlSOUT( boost::bind(&Dynamic::getLowerVelocityLimits,this,_1,_2),
-                sotNOSIGNAL,
-                "sotDynamic("+name+")::output(vector)::lowerVl" )
-
   ,upperTlSOUT( boost::bind(&Dynamic::getUpperTorqueLimits,this,_1,_2),
                 sotNOSIGNAL,
                 "sotDynamic("+name+")::output(vector)::upperTl" )
-
-  ,lowerTlSOUT( boost::bind(&Dynamic::getLowerTorqueLimits,this,_1,_2),
-                sotNOSIGNAL,
-                "sotDynamic("+name+")::output(vector)::lowerTl" )
 
   ,inertiaRotorSOUT( "sotDynamic("+name+")::output(matrix)::inertiaRotor" )
   ,gearRatioSOUT( "sotDynamic("+name+")::output(matrix)::gearRatio" )
@@ -105,9 +97,7 @@ Dynamic::Dynamic( const std::string & name, bool build ):Entity(name)
     signalRegistration(upperJlSOUT);
     signalRegistration(lowerJlSOUT);
     signalRegistration(upperVlSOUT);
-    signalRegistration(lowerVlSOUT);
     signalRegistration(upperTlSOUT);
-    signalRegistration(lowerTlSOUT);
     signalRegistration(inertiaSOUT);
     signalRegistration(inertiaRealSOUT);
     signalRegistration(inertiaRotorSOUT);
@@ -137,7 +127,22 @@ Dynamic::Dynamic( const std::string & name, bool build ):Entity(name)
                makeCommandVoid2(*this,&Dynamic::cmd_createOpPointSignals,
                                 docstring));
 
+    docstring = docCommandVoid2("Create a jacobian (world frame) signal only for one joint.",
+                "string (signal name)","string (joint name)");
+    addCommand("createJacobian",
+       makeCommandVoid2(*this,&Dynamic::cmd_createJacobianWorldSignal,
+                docstring));
 
+    docstring = docCommandVoid2("Create a jacobian (endeff frame) signal only for one joint.",
+                "string (signal name)","string (joint name)");
+    addCommand("createJacobianEndEff",
+       makeCommandVoid2(*this,&Dynamic::cmd_createJacobianEndEffectorSignal,
+                docstring));
+
+    docstring = docCommandVoid2("Create a position (matrix homo) signal only for one joint.",
+                "string (signal name)","string (joint name)");
+    addCommand("createPosition",
+       makeCommandVoid2(*this,&Dynamic::cmd_createPositionSignal,docstring));
 
     // #### End Work in progress
 }
@@ -154,6 +159,10 @@ Dynamic::~Dynamic( void )
     }
     return;
 }
+
+/* --- CONFIG --------------------------------------------------------------- */
+/* --- CONFIG --------------------------------------------------------------- */
+/* --- CONFIG --------------------------------------------------------------- */
 
 void Dynamic::setUrdfPath( const std::string& path )
 {
@@ -251,6 +260,7 @@ Eigen::VectorXd Dynamic::getPinocchioAcc(int time)
 /* --- SIGNAL ACTIVATION ---------------------------------------------------- */
 /* --- SIGNAL ACTIVATION ---------------------------------------------------- */
 /* --- SIGNAL ACTIVATION ---------------------------------------------------- */
+
 dg::SignalTimeDependent< ml::Matrix,int > & Dynamic::
 createEndeffJacobianSignal( const std::string& signame, int jointId )
 {
@@ -284,7 +294,7 @@ createJacobianSignal( const std::string& signame, int jointId )
 void Dynamic::
 destroyJacobianSignal( const std::string& signame )
 {
-    //TODO: implement here
+    //Work done
     bool deletable = false;
     dg::SignalTimeDependent< ml::Matrix,int > * sig = & jacobiansSOUT( signame );
     for(  std::list< SignalBase<int>* >::iterator iter = genericSignalRefs.begin();
@@ -293,7 +303,6 @@ destroyJacobianSignal( const std::string& signame )
       {
         if( (*iter) == sig ) { genericSignalRefs.erase(iter); deletable = true; break; }
       }
-
     if(! deletable )
       {
         SOT_THROW ExceptionDynamic( ExceptionDynamic::CANT_DESTROY_SIGNAL,
@@ -301,11 +310,14 @@ destroyJacobianSignal( const std::string& signame )
                        " (while trying to remove generic jac. signal <%s>).",
                        signame.c_str() );
       }
-
     signalDeregistration( signame );
 
     delete sig;
 }
+
+/* --- POINT --- */
+/* --- POINT --- */
+/* --- POINT --- */
 
 dg::SignalTimeDependent< MatrixHomogeneous,int >& Dynamic::
 createPositionSignal ( const std::string& signame, int jointId )
@@ -338,7 +350,6 @@ destroyPositionSignal( const std::string& signame )
       {
         if( (*iter) == sig ) { genericSignalRefs.erase(iter); deletable = true; break; }
       }
-
     if(! deletable )
       {
         SOT_THROW ExceptionDynamic( ExceptionDynamic::CANT_DESTROY_SIGNAL,
@@ -346,38 +357,99 @@ destroyPositionSignal( const std::string& signame )
                        " (while trying to remove generic pos. signal <%s>).",
                        signame.c_str() );
       }
-
     signalDeregistration( signame );
 
     delete sig;
 }
 
+/* --- VELOCITY --- */
+/* --- VELOCITY --- */
+/* --- VELOCITY --- */
+
 dg::SignalTimeDependent< ml::Vector,int >& Dynamic::
 createVelocitySignal( const std::string& signame,  int jointId )
 {
-    //TODO: implement here
-    dg::SignalTimeDependent<ml::Vector,int> res;
-    return res;
+    //Work in progress
+    sotDEBUGIN(15);
+    SignalTimeDependent< ml::Vector,int > * sig
+      = new SignalTimeDependent< ml::Vector,int >
+      ( boost::bind(&Dynamic::computeGenericVelocity,this,jointId,_1,_2),
+        newtonEulerSINTERN,
+        "sotDynamic("+name+")::output(ml::Vector)::"+signame );
+    genericSignalRefs.push_back( sig );
+    signalRegistration( *sig );
+
+    sotDEBUGOUT(15);
+    return *sig;
 }
 
 void Dynamic::
 destroyVelocitySignal( const std::string& signame )
 {
-    //TODO: implement here
+    //Work in progress
+    bool deletable = false;
+    SignalTimeDependent< ml::Vector,int > * sig = & velocitiesSOUT( signame );
+    for(  std::list< SignalBase<int>* >::iterator iter = genericSignalRefs.begin();
+      iter != genericSignalRefs.end();
+      ++iter )
+      {
+        if( (*iter) == sig ) { genericSignalRefs.erase(iter); deletable = true; break; }
+      }
+    if(! deletable )
+      {
+        SOT_THROW ExceptionDynamic( ExceptionDynamic::CANT_DESTROY_SIGNAL,
+                       "Cannot destroy signal",
+                       " (while trying to remove generic pos. signal <%s>).",
+                       signame.c_str() );
+      }
+    signalDeregistration( signame );
+    delete sig;
 }
+
+/* --- ACCELERATION --- */
+/* --- ACCELERATION --- */
+/* --- ACCELERATION --- */
 
 dg::SignalTimeDependent< ml::Vector,int >& Dynamic::
 createAccelerationSignal( const std::string& signame, int jointId )
 {
-    //TODO: implement here
-    dg::SignalTimeDependent<ml::Vector,int> res;
-    return res;
+    //Work in progress
+    sotDEBUGIN(15);
+    dg::SignalTimeDependent< ml::Vector,int > * sig
+      = new dg::SignalTimeDependent< ml::Vector,int >
+      ( boost::bind(&Dynamic::computeGenericAcceleration,this,jointId,_1,_2),
+        newtonEulerSINTERN,
+        "sotDynamic("+name+")::output(matrixHomo)::"+signame );
+
+    genericSignalRefs.push_back( sig );
+    signalRegistration( *sig );
+
+    sotDEBUGOUT(15);
+    return *sig;
 }
 
 void Dynamic::
 destroyAccelerationSignal( const std::string& signame )
 {
-    //TODO: implement here
+    //Work in progress
+    bool deletable = false;
+    dg::SignalTimeDependent< ml::Vector,int > * sig = & accelerationsSOUT( signame );
+    for(  std::list< SignalBase<int>* >::iterator iter = genericSignalRefs.begin();
+      iter != genericSignalRefs.end();
+      ++iter )
+      {
+        if( (*iter) == sig ) { genericSignalRefs.erase(iter); deletable = true; break; }
+      }
+    if(! deletable )
+      {
+        SOT_THROW ExceptionDynamic( ExceptionDynamic::CANT_DESTROY_SIGNAL,
+                    getName() + ":cannot destroy signal",
+                    " (while trying to remove generic acc "
+                    "signal <%s>).",
+                    signame.c_str() );
+      }
+    signalDeregistration( signame );
+    delete sig;
 }
 
 
@@ -533,7 +605,18 @@ ml::Matrix& Dynamic::computeInertia( ml::Matrix& res,int time )
 
 ml::Matrix& Dynamic::computeInertiaReal( ml::Matrix& res,int time )
 {
-    //TODO: implement here
+    //Work in progress
+    sotDEBUGIN(25);
+    newtonEulerSINTERN(time);
+    const ml::Matrix & A = inertiaSOUT(time);
+    const ml::Vector & gearRatio = gearRatioSOUT(time);
+    const ml::Vector & inertiaRotor = inertiaRotorSOUT(time);
+
+    res = A;
+    for( unsigned int i=0;i<gearRatio.size();++i )
+      res(i,i) += (gearRatio(i)*gearRatio(i)*inertiaRotor(i));
+
+    sotDEBUGOUT(25);
     return res;
 }
 
@@ -543,7 +626,11 @@ double&     Dynamic::computeFootHeight( double& res,int time )
     return res;
 }
 
-
+ml::Vector& Dynamic::computeTorqueDrift( ml::Vector& res,const int& time )
+{
+    //TODO: implement here
+    return res;
+}
 
 /* --- SIGNAL --------------------------------------------------------------- */
 /* --- SIGNAL --------------------------------------------------------------- */
@@ -628,45 +715,48 @@ int& Dynamic::computeNewtonEuler( int& dummy,int time )
 
 ml::Vector& Dynamic::getUpperJointLimits( ml::Vector& res,const int& time )
 {
-    //TODO: implement here
+    //Work done
+    sotDEBUGIN(15);
+    newtonEulerSINTERN(time);
+    res = eigenVectorXdToMaal(this->m_data->upperPositionLimit);
+
+    sotDEBUGOUT(15);
     return res;
 }
 
 ml::Vector& Dynamic::getLowerJointLimits( ml::Vector& res,const int& time )
 {
-    //TODO: implement here
+    //Work done
+    sotDEBUGIN(15);
+    newtonEulerSINTERN(time);
+    res = eigenVectorXdToMaal(this->m_data->lowerPositionLimit);
+
+    sotDEBUGOUT(15);
     return res;
 }
 
 ml::Vector& Dynamic::getUpperVelocityLimits( ml::Vector& res,const int& time )
 {
-    //TODO: implement here
-    return res;
-}
+    //Work done
+    sotDEBUGIN(15);
+    newtonEulerSINTERN(time);
+    res = eigenVectorXdToMaal(this->m_data->velocityLimit);
 
-ml::Vector& Dynamic::getLowerVelocityLimits( ml::Vector& res,const int& time )
-{
-    //TODO: implement here
+    sotDEBUGOUT(15);
     return res;
 }
 
 ml::Vector& Dynamic::getUpperTorqueLimits( ml::Vector& res,const int& time )
 {
-    //TODO: implement here
+    //Work done
+    sotDEBUGIN(15);
+    newtonEulerSINTERN(time);
+    res = eigenVectorXdToMaal(this->m_data->effortLimit);
+
+    sotDEBUGOUT(15);
     return res;
 }
 
-ml::Vector& Dynamic::getLowerTorqueLimits( ml::Vector& res,const int& time )
-{
-    //TODO: implement here
-    return res;
-}
-
-ml::Vector& Dynamic::computeTorqueDrift( ml::Vector& res,const int& time )
-{
-    //TODO: implement here
-    return res;
-}
 
 /* --- COMMANDS ------------------------------------------------------------- */
 /* --- COMMANDS ------------------------------------------------------------- */
@@ -685,7 +775,7 @@ void Dynamic::cmd_createOpPointSignals( const std::string& opPointName,
 }
 
 void Dynamic::cmd_createJacobianWorldSignal( const std::string& signalName,
-                 const std::string& jointName )
+                                             const std::string& jointName )
 {
     //Work in progress
     if(!this->m_model.existBodyName(jointName))
@@ -695,3 +785,28 @@ void Dynamic::cmd_createJacobianWorldSignal( const std::string& signalName,
     int jointId = this->m_model.getBodyId(jointName);
     createJacobianSignal(signalName, jointId);
 }
+
+void Dynamic::cmd_createJacobianEndEffectorSignal( const std::string& signalName,
+                                                   const std::string& jointName )
+{
+    //Work in progress
+    if(!this->m_model.existBodyName(jointName))
+    {
+        throw runtime_error ("Robot has no joint corresponding to " + jointName);
+    }
+    int jointId = this->m_model.getBodyId(jointName);
+    createEndeffJacobianSignal(signalName, jointId);
+}
+
+void Dynamic::cmd_createPositionSignal( const std::string& signalName,
+                                        const std::string& jointName )
+{
+    //Work in progress
+    if(!this->m_model.existBodyName(jointName))
+    {
+        throw runtime_error ("Robot has no joint corresponding to " + jointName);
+    }
+    int jointId = this->m_model.getBodyId(jointName);
+    createPositionSignal(signalName, jointId);
+}
+
